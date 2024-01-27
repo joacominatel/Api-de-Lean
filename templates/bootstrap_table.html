@@ -1,0 +1,32 @@
+{% extends './base.html' %}
+
+{% block body %}
+  <table id="status" class="tabla_status">
+    <thead>
+      <tr>
+        <th>EId</th>
+        <th>Nombre</th>
+        <th>Task</th>
+        <th>Timestamp 1</th>
+        <th>Timestamp 2</th>
+        <th>Minutos</th>
+        <th>Data</th>
+        <th>IP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for st in sts %}
+        <tr>
+          <td>{{ st[0] }}</td>
+          <td>{{ st[1] }}</td>
+          <td>{{ st[2] }}</td>
+          <td>{{ st[3] }}</td>
+          <td>{{ st[4] }}</td>
+          <td>{{ st[5] }}</td>
+          <td>{{ st[6] }}</td>
+          <td>{{ st[7] }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

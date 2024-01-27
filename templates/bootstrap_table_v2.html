@@ -1,0 +1,50 @@
+{% extends './base.html' %}
+
+{% block body %}
+  <form method="POST">
+    <label for="empresa">Empresa:</label>
+    <!-- <input type="text" name="n_empresa" id="id_empresa">
+    class="form-control" -->
+    <select id="id_empresa" name="empresa">
+      {% for empresa in empresas %}
+        <option value="{{ empresa[0] }}"> {{ empresa[1] }} </option>
+      {% endfor %}
+    </select>
+    <input type="submit" class="btn btn-success btn-sm">
+  </form>
+  <script>
+    empresa_select = document.getElementById('id_empresa');
+    empresa_select.onchange = function(){
+      empresa = empresa_select.value;
+      alert(empresa);
+    }
+  </script>
+<!--
+  <table id="status" class="table table-striped">
+    <thead>
+      <tr>
+        <th>Id</th>
+        <th>Nombre</th>
+        <th>Task</th>
+        <th>Timestamp 1</th>
+        <th>Timestamp 2</th>
+        <th>Minutos</th>
+        <th>Data</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for st in sts %}
+        <tr>
+          <td>{{ st[0] }}</td>
+          <td>{{ st[1] }}</td>
+          <td>{{ st[2] }}</td>
+          <td>{{ st[3] }}</td>
+          <td>{{ st[4] }}</td>
+          <td>{{ st[5] }}</td>
+          <td>{{ st[6] }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+-->
+{% endblock %}
