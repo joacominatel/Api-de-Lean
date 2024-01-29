@@ -1,15 +1,18 @@
 import sys
 import datetime
-import pytz
+import pytz, os
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template
 from flask_mysqldb import MySQL
 
+load_dotenv()
+
 app = Flask(__name__)
 # app.config.from_pyfile('config.py', silent=True)
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'jminat01'
-app.config['MYSQL_PASSWORD'] = ''
-app.config['MYSQL_DB'] = 'api'
+app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
+app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
+app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
+app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
 mysql = MySQL(app)
 
 @app.route("/")
@@ -19,10 +22,7 @@ def index():
 @app.route("/view_status")
 def status():
     print(request.args.items(), file=sys.stdout)
-    # print(args_dict, file=sys.stdout)
-    # print(p_clid, file=sys.stdout)
-    # ImmutableMultiDict( [('1', '')] )
-    
+
     # Si no informan compania asumimos 0
     if not request.args.keys():
         sqlstm = 'SELECT cliente_id, cliente_nombre, task, ts1, ts2, mins, data, ipaddr FROM v_status;'
@@ -40,6 +40,88 @@ def status():
     # print(sts, file=sys.stdout)
     
     return render_template("bootstrap_table.html", sts=sts, title='Status')
+
+@app.route('/tests', methods=['GET', 'POST'])
+def tests():
+    cur = mysql.connection.cursor()
+    cur.execute('SELECT id, name FROM clients;')
+
+    clients = cur.fetchall()
+    selected_clid = request.args.get('id_filter', '')
+
+    if selected_clid == '0':
+        # si el ID seleccionado es 0, obtén todos los clientes sin aplicar el filtro por ID
+        sqlstm = '''
+            SELECT
+                rs.clid AS cliente_id,
+                c.name AS cliente_nombre,
+                rs.task AS task,
+                rs.ts AS ts1,
+                IF(rs.ts_end IS NULL, '', rs.ts_end) AS ts2,
+                LPAD(IF(rs.ts_end IS NULL, 0, TIMESTAMPDIFF(MINUTE, rs.ts, rs.ts_end)), 8, ' ') AS mins,
+                IF(rs.rqst_data IS NULL, ' ', rs.rqst_data) AS data,
+                IF(rs.ipaddr IS NULL, ' ', rs.ipaddr) AS ipaddr
+            FROM r_status rs
+            LEFT JOIN clients c ON rs.clid = c.id
+            WHERE rs.ts >= CURRENT_TIMESTAMP() - INTERVAL 1 DAY
+            ORDER BY rs.clid, rs.ts DESC
+            LIMIT 80;
+        '''
+        sqlparms = ()
+    elif selected_clid:
+        # si se selecciona un ID diferente de 0, aplica el filtro por ID
+        sqlstm = '''
+            SELECT
+                rs.clid AS cliente_id,
+                c.name AS cliente_nombre,
+                rs.task AS task,
+                rs.ts AS ts1,
+                IF(rs.ts_end IS NULL, '', rs.ts_end) AS ts2,
+                LPAD(IF(rs.ts_end IS NULL, 0, TIMESTAMPDIFF(MINUTE, rs.ts, rs.ts_end)), 8, ' ') AS mins,
+                IF(rs.rqst_data IS NULL, ' ', rs.rqst_data) AS data,
+                IF(rs.ipaddr IS NULL, ' ', rs.ipaddr) AS ipaddr
+            FROM r_status rs
+            LEFT JOIN clients c ON rs.clid = c.id
+            WHERE rs.clid = %s AND rs.ts >= CURRENT_TIMESTAMP() - INTERVAL 1 DAY
+            ORDER BY rs.clid, rs.ts DESC
+            LIMIT 80;
+        '''
+        sqlparms = (selected_clid,)
+    else:
+        # si no se selecciona ningun ID, muestra todos los clientes
+        sqlstm = '''
+            SELECT
+                rs.clid AS cliente_id,
+                c.name AS cliente_nombre,
+                rs.task AS task,
+                rs.ts AS ts1,
+                IF(rs.ts_end IS NULL, '', rs.ts_end) AS ts2,
+                LPAD(IF(rs.ts_end IS NULL, 0, TIMESTAMPDIFF(MINUTE, rs.ts, rs.ts_end)), 8, ' ') AS mins,
+                IF(rs.rqst_data IS NULL, ' ', rs.rqst_data) AS data,
+                IF(rs.ipaddr IS NULL, ' ', rs.ipaddr) AS ipaddr
+            FROM r_status rs
+            LEFT JOIN clients c ON rs.clid = c.id
+            WHERE rs.ts >= CURRENT_TIMESTAMP() - INTERVAL 1 DAY
+            ORDER BY rs.clid, rs.ts DESC
+            LIMIT 80;
+        '''
+        sqlparms = ()
+
+    cur.execute(sqlstm, sqlparms)
+    sts = cur.fetchall()
+
+    return render_template("bootstrap_table.html", sts=sts, title='Status', clients=clients, selected_clid=selected_clid)
+
+@app.route('/get_id_options')
+def get_id_options():
+    cur = mysql.connection.cursor()
+    cur.execute('SELECT id, name FROM clients;')
+
+    clients = cur.fetchall()
+    id_options = [{'id': client[0], 'name': client[1]} for client in clients]
+
+    return jsonify(id_options)
+
 
 ## task= tarea
 ## agg_task= agrupador de tareas (para indicar inicio->fin)

@@ -4,7 +4,13 @@
   <table id="status" class="tabla_status">
     <thead>
       <tr>
-        <th>EId</th>
+        <th>
+          <form id="status-filter-form" method="GET" action="{{ url_for('tests') }}">
+            <select class="form-control" name="id_filter" id="id_filter" onchange="onIdFilterChange()">
+              <option value="">ID</option>
+            </select>
+          </form>
+        </th>
         <th>Nombre</th>
         <th>Task</th>
         <th>Timestamp 1</th>
@@ -16,6 +22,7 @@
     </thead>
     <tbody>
       {% for st in sts %}
+        {% if not id_filter or id_filter == st[0] %}
         <tr>
           <td>{{ st[0] }}</td>
           <td>{{ st[1] }}</td>
@@ -26,6 +33,7 @@
           <td>{{ st[6] }}</td>
           <td>{{ st[7] }}</td>
         </tr>
+        {% endif %}
       {% endfor %}
     </tbody>
   </table>
