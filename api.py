@@ -1,4 +1,3 @@
-import sys
 import datetime
 import pytz, os
 from dotenv import load_dotenv
@@ -19,31 +18,9 @@ mysql = MySQL(app)
 @app.route("/")
 def index():
     return redirect("/view_status", code=302)
-    return "<h1>clid=99&task=Backup_BBDD&agg_task=20150213081705</h1>"
+    # return "<h1>clid=99&task=Backup_BBDD&agg_task=20150213081705</h1>"
 
-@app.route("/view_status")
-def status():
-    print(request.args.items(), file=sys.stdout)
-
-    # Si no informan compania asumimos 0
-    if not request.args.keys():
-        sqlstm = 'SELECT cliente_id, cliente_nombre, task, ts1, ts2, mins, data, ipaddr FROM v_status;'
-        sqlparms = ()
-    else:
-        args_dict = request.args.to_dict()
-        p_clid = list(args_dict.keys())[0]
-        sqlstm = 'SELECT cliente_id, cliente_nombre, task, ts1, ts2, mins, data, ipaddr FROM v_status WHERE cliente_id = %s;'
-        sqlparms = (p_clid,)
-    
-    cur = mysql.connection.cursor()
-    # print(sqlstm, file=sys.stdout)
-    cur.execute(sqlstm, sqlparms)
-    sts = cur.fetchall()
-    # print(sts, file=sys.stdout)
-    
-    return render_template("bootstrap_table.html", sts=sts, title='Status')
-
-@app.route('/tests')
+@app.route('/view_status')
 def tests():
     cur = mysql.connection.cursor()
     cur.execute('SELECT id, name FROM clients;')
@@ -54,7 +31,7 @@ def tests():
     # obtiene la fecha de inicio del form
     timestamp_from = request.args.get('timestamp_from', '')
 
-    # para optimizar la consulta sin limite, se agrega un limite de 100 registros, pero con paginas
+    # para optimizar la consulta sin limite de los "resultados", se agrega un limite de 100 registros, pero con paginacion
     page = int(request.args.get('page', 1))
     items_per_page = 100
     offset = (page - 1) * items_per_page
@@ -79,7 +56,7 @@ def tests():
         '''
         sqlparms = (timestamp_from, items_per_page, offset)
     elif selected_clid:
-        # Si se selecciona un ID diferente de 0, aplica el filtro por ID y fecha de inicio
+        # si se selecciona un ID diferente de 0, aplica el filtro por ID y fecha de inicio
         sqlstm = '''
             SELECT
                 rs.clid AS cliente_id,
@@ -98,7 +75,7 @@ def tests():
         '''
         sqlparms = (selected_clid, timestamp_from, items_per_page, offset)
     else:
-        # Si no se selecciona ningún ID, muestra todos los clientes sin aplicar el filtro por ID y fecha de inicio
+        # si no se selecciona ningun ID, muestra todos los clientes sin aplicar el filtro por ID y fecha de inicio
         sqlstm = '''
             SELECT
                 rs.clid AS cliente_id,
@@ -120,8 +97,16 @@ def tests():
     cur.execute(sqlstm, sqlparms)
     sts = cur.fetchall()
 
-    return render_template("bootstrap_table.html", sts=sts, title='Status', clients=clients, selected_clid=selected_clid, page=page, items_per_page=items_per_page, timestamp_from=timestamp_from)
+    return render_template("bootstrap_table.html", 
+                           sts=sts, title='Status', 
+                           clients=clients, 
+                           selected_clid=selected_clid, 
+                           page=page, 
+                           items_per_page=items_per_page, 
+                           timestamp_from=timestamp_from)
 
+# esta ruta es para obtener los clientes en formato JSON
+# la usa el JS de la pagina para cargar el select de clientes
 @app.route('/get_id_options')
 def get_id_options():
     cur = mysql.connection.cursor()
@@ -137,7 +122,7 @@ def get_id_options():
 ## agg_task= agrupador de tareas (para indicar inicio->fin)
 ## agg_job= agrupador de trabajos (por si queremos conglomerar un conjunto de tareas) (¿¿??)
 
-@app.route("/v1/statusinsert", methods=['PO ST'])
+@app.route("/v1/statusinsert", methods=['POST'])
 def insert_status():
     try:
         if request.method == 'POST':
@@ -191,37 +176,9 @@ def insert_status():
     except Exception as ex:
 
         return jsonify({"ExError":str(ex)})
-
-@app.route("/v1/getclients", methods=['GET'])
-def getEmpresas():
-    sqlstm = 'SELECT id, name FROM clients;'
-    sqlparms = ()
-    cur = mysql.connection.cursor()
-    # print(sqlstm, file=sys.stdout)
-    cur.execute(sqlstm, sqlparms)
-    row_headers = [x[0] for x in cur.description]   # trae los encabezados
-    # print("row_headers: ", json.dumps(row_headers), file=sys.stdout)
-
-    clients = cur.fetchall()
-    json_data = []
-    for empresa in clients:
-        json_data.append(dict(zip(row_headers, empresa)))
-
-    # print("json_data: {}".format(json_data), file=sys.stdout)
-    
-    return jsonify(json_data)
-
-@app.route("/v1/showvar", methods=['POST'])
-def showvar():
-    if request.method == 'POST':
-        p_var = request.form.get('variable')
-        msg = "Data"
-        data = "Variable: {}".format(p_var)
-        return jsonify({msg:data})
-    else:
-        msg = "ERROR"
-        data = "Wrong method."
-        return jsonify({msg:data})
+    finally:
+        cur.close()
+        mysql.connection.close()
 
 @app.errorhandler(404)
 def not_found(error=None):
@@ -243,7 +200,6 @@ def internal_error(error=None):
     resp.status_code = 500
     return render_template("404.html", title='Internal Error')
 
-# if method not allowed 
 @app.errorhandler(405)
 def method_not_allowed(error=None):
     message = {
