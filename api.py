@@ -2,21 +2,23 @@ import sys
 import datetime
 import pytz, os
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect
 from flask_mysqldb import MySQL
 
 load_dotenv()
 
 app = Flask(__name__)
-# app.config.from_pyfile('config.py', silent=True)
+
 app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
 app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
+
 mysql = MySQL(app)
 
 @app.route("/")
 def index():
+    return redirect("/view_status", code=302)
     return "<h1>clid=99&task=Backup_BBDD&agg_task=20150213081705</h1>"
 
 @app.route("/view_status")
@@ -41,7 +43,7 @@ def status():
     
     return render_template("bootstrap_table.html", sts=sts, title='Status')
 
-@app.route('/tests', methods=['GET', 'POST'])
+@app.route('/tests')
 def tests():
     cur = mysql.connection.cursor()
     cur.execute('SELECT id, name FROM clients;')
@@ -49,8 +51,16 @@ def tests():
     clients = cur.fetchall()
     selected_clid = request.args.get('id_filter', '')
 
+    # obtiene la fecha de inicio del form
+    timestamp_from = request.args.get('timestamp_from', '')
+
+    # para optimizar la consulta sin limite, se agrega un limite de 100 registros, pero con paginas
+    page = int(request.args.get('page', 1))
+    items_per_page = 100
+    offset = (page - 1) * items_per_page
+
     if selected_clid == '0':
-        # si el ID seleccionado es 0, obtén todos los clientes sin aplicar el filtro por ID
+        # Si el ID seleccionado es 0, obtén todos los clientes sin aplicar el filtro por ID
         sqlstm = '''
             SELECT
                 rs.clid AS cliente_id,
@@ -63,13 +73,13 @@ def tests():
                 IF(rs.ipaddr IS NULL, ' ', rs.ipaddr) AS ipaddr
             FROM r_status rs
             LEFT JOIN clients c ON rs.clid = c.id
-            WHERE rs.ts >= CURRENT_TIMESTAMP() - INTERVAL 1 DAY
+            WHERE rs.ts >= %s
             ORDER BY rs.clid, rs.ts DESC
-            LIMIT 80;
+            LIMIT %s OFFSET %s;
         '''
-        sqlparms = ()
+        sqlparms = (timestamp_from, items_per_page, offset)
     elif selected_clid:
-        # si se selecciona un ID diferente de 0, aplica el filtro por ID
+        # Si se selecciona un ID diferente de 0, aplica el filtro por ID y fecha de inicio
         sqlstm = '''
             SELECT
                 rs.clid AS cliente_id,
@@ -82,13 +92,13 @@ def tests():
                 IF(rs.ipaddr IS NULL, ' ', rs.ipaddr) AS ipaddr
             FROM r_status rs
             LEFT JOIN clients c ON rs.clid = c.id
-            WHERE rs.clid = %s AND rs.ts >= CURRENT_TIMESTAMP() - INTERVAL 1 DAY
+            WHERE rs.clid = %s AND rs.ts >= %s
             ORDER BY rs.clid, rs.ts DESC
-            LIMIT 80;
+            LIMIT %s OFFSET %s;
         '''
-        sqlparms = (selected_clid,)
+        sqlparms = (selected_clid, timestamp_from, items_per_page, offset)
     else:
-        # si no se selecciona ningun ID, muestra todos los clientes
+        # Si no se selecciona ningún ID, muestra todos los clientes sin aplicar el filtro por ID y fecha de inicio
         sqlstm = '''
             SELECT
                 rs.clid AS cliente_id,
@@ -101,16 +111,16 @@ def tests():
                 IF(rs.ipaddr IS NULL, ' ', rs.ipaddr) AS ipaddr
             FROM r_status rs
             LEFT JOIN clients c ON rs.clid = c.id
-            WHERE rs.ts >= CURRENT_TIMESTAMP() - INTERVAL 1 DAY
+            WHERE rs.ts >= %s
             ORDER BY rs.clid, rs.ts DESC
-            LIMIT 80;
+            LIMIT %s OFFSET %s;
         '''
-        sqlparms = ()
+        sqlparms = (timestamp_from, items_per_page, offset)
 
     cur.execute(sqlstm, sqlparms)
     sts = cur.fetchall()
 
-    return render_template("bootstrap_table.html", sts=sts, title='Status', clients=clients, selected_clid=selected_clid)
+    return render_template("bootstrap_table.html", sts=sts, title='Status', clients=clients, selected_clid=selected_clid, page=page, items_per_page=items_per_page, timestamp_from=timestamp_from)
 
 @app.route('/get_id_options')
 def get_id_options():
@@ -127,7 +137,7 @@ def get_id_options():
 ## agg_task= agrupador de tareas (para indicar inicio->fin)
 ## agg_job= agrupador de trabajos (por si queremos conglomerar un conjunto de tareas) (¿¿??)
 
-@app.route("/v1/statusinsert", methods=['POST'])
+@app.route("/v1/statusinsert", methods=['PO ST'])
 def insert_status():
     try:
         if request.method == 'POST':

@@ -59,7 +59,20 @@ function loadIdOptions() {
     });
 }
 
+// Manejo del datetime
+function onTimestampFromChange() {
+  document.getElementById("timestamp-filter-form").submit(); // envia el formulario al cambiar el valor
+}
+
 // carga las opciones de id
 window.onload = function () {
   loadIdOptions();
+
+  // Coloca automaticamente el dia de ayer como fecha inicial
+  const timestampFrom = document.getElementById("timestamp_from");
+  const today = new Date();
+  const yesterday = new Date(today);
+
+  yesterday.setDate(yesterday.getDate() - 1);
+  timestampFrom.valueAsDate = yesterday;
 };
