@@ -19,7 +19,7 @@ nav {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 0 15px;
+    /* padding: 0 15px; */
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
@@ -211,7 +211,7 @@ body.dark .container .tabla_status thead tr th form input[type="datetime-local"]
 body .container .tabla_status tbody tr {
     background-color: #fff;
     color: #3f3f3f;
-    font-weight: 700;
+    /* font-weight: 700; */
 }
 
 body.dark .container .tabla_status tbody tr {
@@ -249,11 +249,12 @@ body .container .tabla_status tbody tr td:nth-child(2) {
 
 body .container .pagination {
     width: 100%;
-    display: grid;
+    display: flex;
     grid-template-columns: auto 1fr auto;
     justify-items: center;
     align-items: center;
     margin-bottom: 3rem;
+    justify-content: space-evenly;
 }
 
 body .container .pagination a:first-child {
@@ -296,4 +297,11 @@ body .container .pagination span {
 
 body.dark .container .pagination span {
     color: #fff;
+}
+
+@media (max-width: 1450px) {
+    body .container {
+        padding: 0;
+        margin: 0;
+    }
 }

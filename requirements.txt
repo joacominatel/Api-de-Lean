@@ -1,3 +1,4 @@
 pytz
 Flask
 Flask-MySQLdb
+python-dotenv

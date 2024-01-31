@@ -17,7 +17,8 @@ mysql = MySQL(app)
 
 @app.route("/")
 def index():
-    return redirect("/view_status", code=302)
+    fechaAyer = datetime.datetime.now().date() - datetime.timedelta(days=1)
+    return redirect(f"/view_status?timestamp_from={fechaAyer}", code=302)
     # return "<h1>clid=99&task=Backup_BBDD&agg_task=20150213081705</h1>"
 
 @app.route('/view_status')
