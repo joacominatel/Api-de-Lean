@@ -76,3 +76,14 @@ window.onload = function () {
   yesterday.setDate(yesterday.getDate() - 1);
   timestampFrom.valueAsDate = yesterday;
 };
+
+// si la fecha del td es hoy o ayer, se agrega la clase .bg-success
+const tds = document.querySelectorAll("td");
+const today = new Date();
+
+tds.forEach((td) => {
+  const date = new Date(td.textContent);
+  if (date.toDateString() === today.toDateString()) {
+    td.parentElement.classList.add("bg-success");
+  }
+});

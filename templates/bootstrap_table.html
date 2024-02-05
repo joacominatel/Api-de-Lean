@@ -6,7 +6,6 @@
         <form
           id="status-filter-form"
           method="GET"
-          action="{{ url_for('tests') }}"
         >
           <select
             class="form-control"
@@ -24,7 +23,6 @@
         <form
           id="timestamp-filter-form"
           method="GET"
-          action="{{ url_for('tests') }}"
         >
           <!-- without seconds -->
           <input
@@ -61,7 +59,7 @@
   <div class="pagination">
       {% if page > 1 %}
       <a
-        href="{{ url_for('tests', id_filter=selected_clid, timestamp_from=timestamp_from, page=page-1) }}"
+        href="{{ url_for('view_status', id_filter=selected_clid, timestamp_from=timestamp_from, page=page-1) }}"
         >
           <i class="fas fa-arrow-left"></i>
         </a>
@@ -75,7 +73,7 @@
       
       {% if sts|length >= items_per_page %}
       <a
-        href="{{ url_for('tests', id_filter=selected_clid, timestamp_from=timestamp_from, page=page+1) }}">
+        href="{{ url_for('view_status', id_filter=selected_clid, timestamp_from=timestamp_from, page=page+1) }}">
         <i class="fas fa-arrow-right"></i>
       </a>
       {% else %}

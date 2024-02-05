@@ -214,6 +214,16 @@ body .container .tabla_status tbody tr {
     /* font-weight: 700; */
 }
 
+body .container .tabla_status tbody tr.bg-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+body.dark .container .tabla_status tbody tr.bg-success {
+    background-color: #1c291b;
+    color: #155724;
+}
+
 body.dark .container .tabla_status tbody tr {
     background-color: #1C1B29;
     color: #fff;
