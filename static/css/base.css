@@ -224,6 +224,16 @@ body.dark .container .tabla_status tbody tr.bg-success {
     color: #155724;
 }
 
+body .container .tabla_status tbody tr td.bg-warning {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+body.dark .container .tabla_status tbody tr td.bg-warning {
+    background-color: #2a1f1f;
+    color: #721c24;
+}
+
 body.dark .container .tabla_status tbody tr {
     background-color: #1C1B29;
     color: #fff;
@@ -231,6 +241,7 @@ body.dark .container .tabla_status tbody tr {
 
 body .container .tabla_status tbody tr td {
     padding: 10px 15px;
+    font-size: 0.84rem;
 }
 
 body .container .tabla_status tbody tr:nth-child(even) {
@@ -280,6 +291,12 @@ body .container .pagination a {
     color: #3f3f3f;
     font-size: 1.5rem;
     font-weight: 700;
+    cursor: pointer;
+}
+
+body .container .pagination a.disabled {
+    cursor: not-allowed;
+    color: #ccc;
 }
 
 body.dark .container .pagination a {
@@ -292,11 +309,6 @@ body.dark .container .pagination a i {
 
 body .container .pagination a i {
     color: #3f3f3f;
-}
-
-body .container .pagination a i.disabled {
-    color: #ccc;
-    cursor: not-allowed;
 }
     
 body .container .pagination span {

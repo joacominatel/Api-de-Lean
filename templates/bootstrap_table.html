@@ -3,15 +3,11 @@
   <thead>
     <tr>
       <th>
-        <form
-          id="status-filter-form"
-          method="GET"
-        >
+        <form id="status-filter-form" method="GET">
           <select
             class="form-control"
             name="id_filter"
             id="id_filter"
-            onchange="onIdFilterChange()"
           >
             <option value="">ID</option>
           </select>
@@ -20,17 +16,12 @@
       <th>Nombre</th>
       <th>Task</th>
       <th>
-        <form
-          id="timestamp-filter-form"
-          method="GET"
-        >
-          <!-- without seconds -->
+        <form id="timestamp-filter-form" method="GET">
           <input
             type="date"
             class="form-control"
             name="timestamp_from"
             id="timestamp_from"
-            onchange="onTimestampFromChange()"
           />
           <input type="hidden" name="id_filter" value="{{ selected_clid }}" />
         </form>
@@ -41,47 +32,20 @@
       <th>IP</th>
     </tr>
   </thead>
-  <tbody>
-    {% for st in sts %} {% if not id_filter or id_filter == st[0] %}
-    <tr>
-      <td>{{ st[0] }}</td>
-      <td>{{ st[1] }}</td>
-      <td>{{ st[2] }}</td>
-      <td>{{ st[3] }}</td>
-      <td>{{ st[4] }}</td>
-      <td>{{ st[5] }}</td>
-      <td>{{ st[6] }}</td>
-      <td>{{ st[7] }}</td>
-    </tr>
-    {% endif %} {% endfor %}
+  <tbody id="statusData">
+    <!-- se llena la tabla con los datos del axios -->
   </tbody>
-
   <div class="pagination">
-      {% if page > 1 %}
-      <a
-        href="{{ url_for('view_status', id_filter=selected_clid, timestamp_from=timestamp_from, page=page-1) }}"
-        >
-          <i class="fas fa-arrow-left"></i>
-        </a>
-      {% else %}
-      <a>
-        <i class="fas fa-arrow-left disabled"></i>
-      </a>
-      {% endif %} 
-
-      <span>Página {{ page }}</span>
-      
-      {% if sts|length >= items_per_page %}
-      <a
-        href="{{ url_for('view_status', id_filter=selected_clid, timestamp_from=timestamp_from, page=page+1) }}">
-        <i class="fas fa-arrow-right"></i>
-      </a>
-      {% else %}
-        <a>
-          <i class="fas fa-arrow-right disabled"></i>
-        </a>
-      {% endif %}
-
+    <a onclick="changePage(-1)" id="prevPage" class="page-link">
+      <i class="fas fa-arrow-left"></i>
+    </a>
+    <span>Página <span id="currentPage">1</span></span>
+    <a onclick="changePage(1)" id="nextPage" class="page-link">
+      <i class="fas fa-arrow-right"></i>
+    </a>
   </div>
+  
+  
 </table>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> <!-- axios 😎 -->
 {% endblock %}

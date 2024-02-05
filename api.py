@@ -19,15 +19,15 @@ mysql = MySQL(app)
 def index():
     fechaAyer = datetime.datetime.now().date() - datetime.timedelta(days=1)
     return redirect(f"/view_status?timestamp_from={fechaAyer}", code=302)
-    # return "<h1>clid=99&task=Backup_BBDD&agg_task=20150213081705</h1>"
 
 def get_clients():
     cur = mysql.connection.cursor()
     cur.execute('SELECT id, name FROM clients;')
     return cur.fetchall()
 
-@app.route('/view_status')
-def view_status():
+# ruta para interactuar con axios y obtener los datos de la tabla
+@app.route('/api/view_status')
+def api_view_status():
     page = request.args.get('page', 1, type=int)
     items_per_page = 100
     offset = (page - 1) * items_per_page
@@ -48,24 +48,49 @@ def view_status():
         LEFT JOIN clients c ON rs.clid = c.id
     '''
 
-    if selected_clid and selected_clid != '0':
-        filters = 'WHERE rs.ts >= %s AND rs.clid = %s'
-        sqlparms = (timestamp_from, selected_clid, items_per_page, offset)
-    else:
-        filters = 'WHERE rs.ts >= %s'
-        sqlparms = (timestamp_from, items_per_page, offset)
+    where_clause = 'WHERE rs.ts >= %s'
+    sqlparms = [timestamp_from]
 
-    final_query = f"{base_query} {filters} ORDER BY rs.clid, rs.ts DESC LIMIT %s OFFSET %s;"
+    if selected_clid and selected_clid != '0':
+        where_clause += ' AND rs.clid = %s'
+        sqlparms.append(selected_clid)
+
+    sqlparms.extend([items_per_page, offset])
+
+    final_query = f"{base_query} {where_clause} ORDER BY rs.clid, rs.ts DESC LIMIT %s OFFSET %s;"
 
     cur = mysql.connection.cursor()
     cur.execute(final_query, sqlparms)
     sts = cur.fetchall()
 
+    # guarda los resultados en un diccionario para el json
+    sts_dicts = [dict(zip([column[0] for column in cur.description], row)) for row in sts]
+
+    # Determinar si hay páginas anteriores o siguientes
+    has_previous = page > 1
+    # si hay pag. siguiente 
+    has_next = len(sts) == items_per_page
+
+    return jsonify({
+        'items': sts_dicts,
+        'hasPrevious': has_previous,
+        'hasNext': has_next
+    })
+
+
+@app.route('/view_status')
+def view_status():
+    page = request.args.get('page', 1, type=int)
+    timestamp_from = request.args.get('timestamp_from', '')
+    selected_clid = request.args.get('id_filter', '')
+
     clients = get_clients()
 
-    return render_template("bootstrap_table.html", sts=sts, title='Status',
-                           clients=clients, selected_clid=selected_clid,
-                           page=page, items_per_page=items_per_page,
+    return render_template("bootstrap_table.html",
+                           title='Status',
+                           clients=clients,
+                           selected_clid=selected_clid,
+                           page=page,
                            timestamp_from=timestamp_from)
 
 @app.route('/get_id_options')
