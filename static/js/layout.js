@@ -90,14 +90,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function formatDate(dateString) {
-    if (!dateString) return ""; // si la fecha es null, retorna un string vacio
-
+    if (!dateString) return ''; // si la fecha no esta definida, retorna un string vacio
     const date = new Date(dateString);
+
     const day = padTo2Digits(date.getDate());
-    const month = padTo2Digits(date.getMonth() + 1);
+    const month = padTo2Digits(date.getMonth() + 1); // Los meses comienzan desde 0
     const year = date.getFullYear();
 
-    return `${day}/${month}/${year}`;
+    const hours = padTo2Digits(date.getHours());
+    const minutes = padTo2Digits(date.getMinutes());
+    const seconds = padTo2Digits(date.getSeconds());
+
+    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
   }
 
   function padTo2Digits(num) {
