@@ -18,7 +18,10 @@
                     <a href="/view_status">View status</a>
                 </li>
                 <li>
-                    <a href="/v1/statusinsert">Status insert</a>
+                    <a href="/add_client">Add client</a>
+                </li>
+                <li>
+                    <a href="/tasks">Tasks</a>
                 </li>
             </ul>
         </nav>
@@ -26,6 +29,7 @@
             <h1>{{ title }}</h1>
             {% block body %} {% endblock %}
         </div>
-        <script src="{{ url_for('static', filename='js/layout.js') }}"></script>
     </body>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> <!-- axios 😎 -->
+    <script src="{{ url_for('static', filename='js/layout.js') }}"></script>
 </html>

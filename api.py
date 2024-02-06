@@ -1,7 +1,7 @@
 import datetime
 import pytz, os
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, render_template, redirect
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_mysqldb import MySQL
 
 load_dotenv()
@@ -17,8 +17,7 @@ mysql = MySQL(app)
 
 @app.route("/")
 def index():
-    fechaAyer = datetime.datetime.now().date() - datetime.timedelta(days=1)
-    return redirect(f"/view_status?timestamp_from={fechaAyer}", code=302)
+    return redirect(f"/view_status", code=302)
 
 def get_clients():
     cur = mysql.connection.cursor()
@@ -43,7 +42,8 @@ def api_view_status():
             COALESCE(rs.ts_end, '') AS ts2,
             LPAD(COALESCE(TIMESTAMPDIFF(MINUTE, rs.ts, rs.ts_end), 0), 8, ' ') AS mins,
             COALESCE(rs.rqst_data, ' ') AS data,
-            COALESCE(rs.ipaddr, ' ') AS ipaddr
+            COALESCE(rs.ipaddr, ' ') AS ipaddr,
+            rs.important AS important
         FROM r_status rs
         LEFT JOIN clients c ON rs.clid = c.id
     '''
@@ -160,6 +160,63 @@ def insert_status():
     finally:
         cur.close()
         mysql.connection.close()
+        
+# logica para crear cliente
+@app.route('/add_client', methods=['POST'])
+def add_client():
+    if request.method == 'POST':
+        # recibe los datos del formulario por axios
+        data = request.json
+        
+        cliente_id = data['id']
+        nombre = data['name']
+        
+        # crea el cursor
+        cursor = mysql.connection.cursor()
+        cursor.execute('INSERT INTO clients (id, name) VALUES (%s, %s)', (cliente_id, nombre))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        # retorna json con mensaje de exito
+        return jsonify({'message': 'Client added successfully'})
+    else:
+        return jsonify({'message': 'Error'})
+
+# formulario para agregar cliente
+@app.route('/add_client', methods=['GET'])
+def add_client_get():
+    return render_template('add_client.html')
+
+@app.route('/tasks', methods=['GET'])
+def tasks():
+    return render_template('tasks.html')
+
+@app.route('/tasks/get_tasks', methods=['GET'])
+def get_tasks():
+    cur = mysql.connection.cursor()
+    # obtiene las tareas y su estado de importancia
+    cur.execute('SELECT task, MAX(important) FROM r_status GROUP BY task;')
+        
+    tasks = cur.fetchall()
+    # transforma los resultados en una lista de diccionarios para facilitar su manejo con jsonify
+    tasks_list = [{'task': task[0], 'important': bool(task[1])} for task in tasks]
+        
+    cur.close()
+        
+    return jsonify(tasks_list)
+
+@app.route('/tasks/update_task_status', methods=['POST'])
+def update_task_status():
+    task_name = request.json['task']
+    enabled = request.json['enabled']
+        
+    cur = mysql.connection.cursor()
+    cur.execute('UPDATE r_status SET important = %s WHERE task = %s;', (enabled, task_name))
+    mysql.connection.commit()
+        
+    cur.close()
+    return jsonify({"success": True})
 
 @app.errorhandler(404)
 def not_found(error=None):

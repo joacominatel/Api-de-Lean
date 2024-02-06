@@ -74,8 +74,11 @@ document.addEventListener("DOMContentLoaded", () => {
       // si el item.mins es mayor a 25, agrega la clase "bg-warning"
       const bgClassWarn = item.mins > 25 ? "bg-warning" : "";
 
+      // chequea si la tarea es importante
+      const rowClass = item.important ? 'important' : '';
+
       // construye la tabla con los datos actualizados
-      const row = `<tr class="${bgClass}">
+      const row = `<tr class="${bgClass, rowClass}">
         <td>${item.cliente_id}</td>
         <td>${item.cliente_nombre}</td>
         <td>${item.task}</td>
