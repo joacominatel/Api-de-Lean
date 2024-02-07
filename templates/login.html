@@ -1,0 +1,23 @@
+{% extends './base.html' %}
+{% block head %}
+<link rel="stylesheet" href="../static/css/login.css">
+{% endblock %}  
+{% block title %}Login{% endblock %}
+
+{% block body %}
+<div class="form-container">
+	<p class="title">Login</p>
+	<form class="form" method="post">
+        {{ form.hidden_tag() }}
+		<div class="input-group">
+			{{ form.username.label }}
+			{{ form.username(size=32) }}
+		</div>
+		<div class="input-group">
+			{{ form.password.label }}
+			{{ form.password(size=32) }}
+		</div>
+		<button class="sign" type="submit">Sign in</button>
+	</form>
+</div>
+{% endblock %}

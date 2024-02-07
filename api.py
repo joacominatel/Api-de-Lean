@@ -1,24 +1,86 @@
-import datetime
-import pytz, os
+import pytz, os, secrets, datetime
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import Flask, request, jsonify, render_template, redirect, flash, url_for
 from flask_mysqldb import MySQL
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField
+from wtforms.validators import InputRequired
+from werkzeug.security import check_password_hash
 
 load_dotenv()
 
+# Configuracion del servidor Flask
 app = Flask(__name__)
+
+secret_key = secrets.token_urlsafe(32)
 
 app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
 app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
+app.config['SECRET_KEY'] = secret_key
+
+# Login manager y db
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
 mysql = MySQL(app)
 
-@app.route("/")
-def index():
-    return redirect(f"/view_status", code=302)
+class User(UserMixin):
+    def __init__(self, id):
+        self.id = id
 
+@login_manager.user_loader
+def load_user(user_id):
+    # buscar usuario en la db por id
+    cur = mysql.connection.cursor()
+    cur.execute('SELECT id FROM users WHERE id = %s;', (user_id,))
+    user = cur.fetchone()
+    cur.close()
+
+    if user:
+        return User(user[0])
+    else:
+        return None
+
+# Formulario de login
+class LoginForm(FlaskForm):
+    username = StringField('username', validators=[InputRequired()])
+    password = PasswordField('password', validators=[InputRequired()])
+
+@app.route('/', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('view_status'))
+
+    form = LoginForm()
+    if form.validate_on_submit():
+        # aca se validan las credenciales del usuario
+        username = form.username.data
+        password = form.password.data
+
+        cur = mysql.connection.cursor()
+        cur.execute('SELECT id, password_hash FROM users WHERE username = %s;', (username,))
+        user = cur.fetchone()
+
+        if user and check_password_hash(user[1], password):
+            user = User(user[0])
+            login_user(user)
+            return redirect(url_for('view_status'))
+        else:
+            flash('Login incorrecto. Intente nuevamente.')
+
+    return render_template('login.html', form=form)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+# Funciones para obtener los clientes
 def get_clients():
     cur = mysql.connection.cursor()
     cur.execute('SELECT id, name FROM clients;')
@@ -79,6 +141,7 @@ def api_view_status():
 
 
 @app.route('/view_status')
+@login_required
 def view_status():
     page = request.args.get('page', 1, type=int)
     timestamp_from = request.args.get('timestamp_from', '')
@@ -185,10 +248,12 @@ def add_client():
 
 # formulario para agregar cliente
 @app.route('/add_client', methods=['GET'])
+@login_required
 def add_client_get():
     return render_template('add_client.html')
 
 @app.route('/tasks', methods=['GET'])
+@login_required
 def tasks():
     return render_template('tasks.html')
 

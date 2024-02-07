@@ -38,6 +38,30 @@ nav.dark .dark-mode i {
   color: #fff;
 }
 
+nav .logout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 9px 12px;
+  gap: 8px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+nav .logout i {
+  font-size: 1rem;
+  color: #000;
+}
+
+nav.dark .logout i {
+  color: #fff;
+}
+
+nav .logout:hover i {
+  animation: slope 1s linear infinite;
+}
+
 .dark-mode i:hover {
   transition: all 0.3s ease;
   font-size: 1.2rem;
@@ -566,7 +590,7 @@ body.dark .container #tasksContainer .task-item {
   margin: 0;
   opacity: 0;
   -appearance: none;
-  -webkit-appearance: none;
+  /* -webkit-appearance: none; */
 }
 
 .checkbox-wrapper input[type="checkbox"]:hover {

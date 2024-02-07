@@ -2,3 +2,6 @@ pytz
 Flask
 Flask-MySQLdb
 python-dotenv
+Flask-Login
+Flask-WTF
+Werkzeug
