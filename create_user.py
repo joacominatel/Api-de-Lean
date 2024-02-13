@@ -7,8 +7,6 @@ load_dotenv('.env')
 user = os.getenv('USER')
 password = os.getenv('PASSWORD')
 
-hashed_password = generate_password_hash(password)
-
 # Connect to the database
 db = mysql.connector.connect(
     host=os.getenv('MYSQL_HOST'),
@@ -28,16 +26,24 @@ cursor.execute("""
     )
 """)
 
-cursor.execute("""
-    INSERT INTO users (username, password_hash) VALUES (%s, %s)
-""", (user, hashed_password))
+if user == None or password == None:
+    print("Please set the USER and PASSWORD environment variables")
+    exit()
 
-db.commit()
+hashed_password = generate_password_hash(password)
 
-cursor.execute("""
-    SELECT * FROM users
-""")
-users = cursor.fetchall()
-
-# Close the connection
-db.close()
+try:
+    # check if user already exists
+    cursor.execute("SELECT * FROM users WHERE username = %s", (user,))
+    result = cursor.fetchone()
+    if result:
+        print(f"User {user} already exists")
+    else:
+        cursor.execute("INSERT INTO users (username, password_hash) VALUES (%s, %s)", (user, hashed_password))
+        db.commit()
+        print(f"User {user} created successfully")
+except Exception as e:
+    print(f"Error creating user: {e}")
+finally:
+    cursor.close()
+    db.close()

@@ -1,4 +1,4 @@
-import pytz, os, secrets, datetime
+import pytz, os, secrets, datetime, base64
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template, redirect, flash, url_for
 from flask_mysqldb import MySQL
@@ -7,6 +7,9 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField
 from wtforms.validators import InputRequired
 from werkzeug.security import check_password_hash
+import numpy as np
+import matplotlib.pyplot as plt
+from io import BytesIO
 
 load_dotenv()
 
@@ -14,6 +17,8 @@ load_dotenv()
 app = Flask(__name__)
 
 secret_key = secrets.token_urlsafe(32)
+
+# app.config.from_pyfile('config.py', silent=True)
 
 app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
 app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
@@ -65,6 +70,7 @@ def login():
         cur.execute('SELECT id, password_hash FROM users WHERE username = %s;', (username,))
         user = cur.fetchone()
 
+        # if user and user[1] == password:
         if user and check_password_hash(user[1], password):
             user = User(user[0])
             login_user(user)
@@ -195,20 +201,27 @@ def insert_status():
             ##  en caso que exista esa combinacion, se actualiza el ts_end
             sqlstm = "SELECT COUNT(*) FROM r_status WHERE clid=%s and task=%s AND agg_task=%s"
             sqlparms = (p_clid, p_task, p_agg_task)
+            
             cur.execute(sqlstm, sqlparms)
             result = cur.fetchone()
+
             if not p_agg_task or result[0] == 0:
                 # si no tiene "unificador" de tareas o no encontro el registro, hacemos el INSERT
-                sqlstm = "INSERT INTO r_status (clid, task, ts, agg_task, agg_job, rqst_data, ipaddr, ts_ins) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-                sqlparms = (p_clid, p_task, now_local, p_agg_task, p_agg_job, p_data, ipaddr, now)
+                sqlstm = "INSERT INTO r_status (clid, task, ts, agg_task, agg_job, rqst_data, ipaddr, ts_ins, important) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                important = check_importance(p_task)
+                sqlparms = (p_clid, p_task, now_local, p_agg_task, p_agg_job, p_data, ipaddr, now, important)
                 cur.execute(sqlstm, sqlparms)
                 msg = "OK"
                 data = "Status agregado correctamente"
             else:
-                sqlstm = "UPDATE r_status SET ts_end=%s,rqst_data=%s,ts_upd=%s WHERE clid=%s AND task=%s AND agg_task=%s"
-                sqlparms = (now_local, p_data, now, p_clid, p_task, p_agg_task)
+                sqlstm = "UPDATE r_status SET ts_end=%s,rqst_data=%s,ts_upd=%s WHERE clid=%s AND task=%s AND agg_task=%s AND important=%s"
+                important = check_importance(p_task)
+                sqlparms = (now_local, p_data, now, p_clid, p_task, p_agg_task, important)
+
                 data = sqlstm, sqlparms
+
                 cur.execute(sqlstm, sqlparms)
+                
                 msg = "OK"
                 data = "Status modificado correctamente. clid={} ; task={} ; ext_id={}".format(p_clid, p_task, p_agg_task)
         else:
@@ -223,7 +236,24 @@ def insert_status():
     finally:
         cur.close()
         mysql.connection.close()
-        
+
+def check_importance(task):
+    cur = mysql.connection.cursor()
+    important = 0
+    # chequear si la task es important 1 verificando si existe en la tabla r_status
+    sqlstm = "SELECT important FROM r_status WHERE task=%s"
+    sqlparms = (task,)
+
+    cur.execute(sqlstm, sqlparms)
+
+    result = cur.fetchone()
+
+    if result:
+        important = result[0]
+    else:
+        important = 0
+    return important
+
 # logica para crear cliente
 @app.route('/add_client', methods=['POST'])
 def add_client():
@@ -282,6 +312,40 @@ def update_task_status():
         
     cur.close()
     return jsonify({"success": True})
+
+
+@app.route('/graphs')
+def graphs():
+    cur = mysql.connection.cursor()
+    cur.execute('''
+        SELECT task, AVG(TIMESTAMPDIFF(MINUTE, ts, ts_end)) AS avg_time
+        FROM r_status
+        GROUP BY task;
+    ''')
+
+    results = cur.fetchall()
+    cur.close()
+
+    # preparar los datos para el grafico
+    tasks = [result[0] for result in results]
+    avg_times = [float(result[1]) for result in results]
+
+    # crear el grafico
+    fig, ax = plt.subplots()
+    ax.barh(tasks, avg_times, color='skyblue')
+    ax.set_xlabel('Tareas')
+    ax.set_ylabel('Tiempo promedio (minutos)')
+    ax.set_title('Tiempo promedio por tarea')
+
+    # guardar el grafico en un buffer en lugar de un archivo
+    buf = BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    
+    image_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    buf.close()
+
+    return render_template('graphs.html', image=image_base64)
 
 @app.errorhandler(404)
 def not_found(error=None):

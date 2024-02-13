@@ -1,0 +1,19 @@
+{% extends './base.html' %} {% block body %}
+<h1>Gráfico de Tiempo Promedio por Tarea</h1>
+<!-- Mostrar el gráfico como una imagen -->
+<div class="graph-container">
+    <img class="graph" src="data:image/png;base64,{{ image }}" alt="Gráfico de Tareas" />
+</div>
+
+<script>
+    let graph = document.getElementsByClassName('graph')[0];
+
+    // al clickear en el grafico, descargarlo
+    graph.addEventListener('click', function() {
+        var a = document.createElement('a');
+        a.href = graph.src;
+        a.download = 'graph.png';
+        a.click();
+    });
+</script>
+{% endblock %}

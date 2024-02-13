@@ -608,3 +608,32 @@ body.dark .container #tasksContainer .task-item {
 .checkbox-wrapper input[type="checkbox"]:checked + svg .check {
   stroke-dashoffset: 0;
 }
+
+.container .graph-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 3rem;
+}
+
+.container .graph-container .graph {
+  width: 100%;
+  max-width: 500px;
+  height: 300px;
+  display: flex;
+  border: 1px solid #3f3f3f;
+  border-radius: 10px;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+}
+
+.container .graph-container .graph:hover {
+  transition: all 0.3s ease;
+  border: 1px dashed #3f3f3f;
+  transform: scale(1.1);
+  cursor: pointer;
+}
+
